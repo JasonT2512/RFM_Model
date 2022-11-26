@@ -1,0 +1,26 @@
+/* Finding the number of new customers */
+SELECT CAST(created_date as DATE) as date, COUNT(created_date) as new_customer, LocationID , BranchCode 
+into #growth
+FROM Customer_Registered cr 
+GROUP BY CAST(created_date as DATE), LocationID , BranchCode 
+
+/* Finding the number of lost customers */
+SELECT CAST(stopdate as DATE) as date, COUNT(stopdate) as lost_customer, LocationID , BranchCode 
+into #lost
+FROM Customer_Registered cr 
+WHERE stopdate IS NOT NULL
+GROUP BY CAST(stopdate as DATE), LocationID , BranchCode 
+
+/* Union the two tables */
+SELECT * INTO #growth_lost FROM
+(SELECT g.date, new_customer, lost_customer, g.LocationID, g.BranchCode FROM #growth as g
+LEFT JOIN #lost l ON g.date = l.date
+UNION 
+SELECT l.date, new_customer, lost_customer, l.LocationID, l.BranchCode FROM #growth as g
+RIGHT JOIN #lost l ON g.date = l.date) as s
+
+/* Analyzing customer growth and lost performance of each brand and location */
+select Date , isNull(new_customer,0) as TotalNewCustomers , isNull(lost_customer,0) as TotalLostCustomer,BranchFullName,LocationName 
+from #growth_lost G
+LEFT JOIN Location l ON l.LocationID = g.locationID AND l.BranchCode = g.BranchCode
+ORDER BY date DESC 
