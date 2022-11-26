@@ -1,0 +1,26 @@
+-- 1. Calculating customer ranking in recency, frequency, monetary
+
+SELECT 
+	CustomerID , 
+	recency, NTILE(4) OVER(ORDER BY recency DESC) as R, 
+	frequency , NTILE(4) OVER(ORDER BY frequency) as F,
+	monetary , NTILE(4) OVER(ORDER BY monetary) as M
+into #rfm_model
+FROM CRM_RFM_SUMMARY crs 
+ORDER BY CustomerID 
+
+-- 2. Customer segmentation
+
+SELECT *, CONCAT(R, F, M) as rfm_score,
+CASE 
+	WHEN CONCAT(R, F, M) = 444 THEN 'Best Customers'
+	WHEN CONCAT(R, F, M) = 114 THEN 'Churned Big Spenders'
+	WHEN CONCAT(R, F, M) = 111 THEN 'Small inactive customers'
+	WHEN CONCAT(R, F, M) = 441 THEN 'Small loyal customers'
+	WHEN CONCAT(R, F, M) LIKE '__4' THEN 'Big Spenders'
+	WHEN CONCAT(R, F, M) LIKE '44_' THEN 'Loyal Customer'
+	WHEN CONCAT(R, F, M) LIKE '__1' THEN 'Small Spenders'
+	WHEN CONCAT(R, F, M) LIKE '11_' THEN 'Churned Customer'
+	ELSE 'Others'
+END as segments
+FROM #rfm_model
